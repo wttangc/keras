@@ -47,10 +47,10 @@ if 'KERAS_BACKEND' in os.environ:
     _BACKEND = _backend
 
 if _BACKEND == 'theano':
-    sys.stderr.write('Using Theano backend.\n')
+    #sys.stderr.write('Using Theano backend.\n')
     from .theano_backend import *
 elif _BACKEND == 'tensorflow':
-    sys.stderr.write('Using TensorFlow backend.\n')
+    #sys.stderr.write('Using TensorFlow backend.\n')
     from .tensorflow_backend import *
 else:
     raise Exception('Unknown backend: ' + str(_BACKEND))
