@@ -9,7 +9,7 @@ except ImportError:
     from theano.sandbox.softsign import softsign as T_softsign
 import inspect
 import numpy as np
-from .common import _FLOATX, _EPSILON
+from .common import _FLOATX, _EPSILON, _IMAGE_DIM_ORDERING
 
 
 # INTERNAL UTILS
@@ -128,8 +128,7 @@ def batch_dot(x, y, axes=None):
     make sure that ndim is at least 2.
 
     # Example
-        Assume x = [[1, 2]   and y = [[5, 6]
-                    [3, 4]]           [7, 8]]
+        Assume x = [[1, 2], [3, 4]]   and y = [[5, 6], [7, 8]]
         batch_dot(x, y, axes=1) = [[17, 53]] which is the main diagonal
         of x.dot(y.T), although we never have to calculate the off-diagonal
         elements.
@@ -200,10 +199,20 @@ def std(x, axis=None, keepdims=False):
     return T.std(x, axis=axis, keepdims=keepdims)
 
 
+def var(x, axis=None, keepdims=False):
+    return T.var(x, axis=axis, keepdims=keepdims)
+
+
 def any(x, axis=None, keepdims=False):
     '''Bitwise reduction (logical OR).
     '''
     return T.any(x, axis=axis, keepdims=keepdims)
+
+
+def all(x, axis=None, keepdims=False):
+    '''Bitwise reduction (logical AND).
+    '''
+    return T.all(x, axis=axis, keepdims=keepdims)
 
 
 def argmax(x, axis=-1):
@@ -389,15 +398,18 @@ def expand_dims(x, dim=-1):
 def squeeze(x, axis):
     '''Remove a 1-dimension from the tensor at index "axis".
     '''
-    x = T.addbroadcast(x, axis)
-    return T.squeeze(x)
+    broadcastable = x.broadcastable[:axis] + x.broadcastable[axis+1:]
+    x = T.patternbroadcast(x, [i == axis for i in range(x.type.ndim)])
+    x = T.squeeze(x)
+    x = T.patternbroadcast(x, broadcastable)
+    return x
 
 
 def temporal_padding(x, padding=1):
     '''Pad the middle dimension of a 3D tensor
     with "padding" zeros left and right.
 
-    Appologies for the inane API, but Theano makes this
+    Apologies for the inane API, but Theano makes this
     really hard.
     '''
     input_shape = x.shape
@@ -782,7 +794,7 @@ def dropout(x, level, seed=None):
     if level < 0. or level >= 1:
         raise Exception('Dropout level must be in interval [0, 1[.')
     if seed is None:
-        seed = np.random.randint(10e6)
+        seed = np.random.randint(1, 10e6)
     rng = RandomStreams(seed=seed)
     retain_prob = 1. - level
     x *= rng.binomial(x.shape, p=retain_prob, dtype=x.dtype)
@@ -797,10 +809,18 @@ def l2_normalize(x, axis):
 
 # CONVOLUTIONS
 
-def conv2d(x, kernel, strides=(1, 1), border_mode='valid', dim_ordering='th',
+def conv2d(x, kernel, strides=(1, 1), border_mode='valid',
+           dim_ordering=_IMAGE_DIM_ORDERING,
            image_shape=None, filter_shape=None):
-    '''
-    border_mode: string, "same" or "valid".
+    '''2D convolution.
+
+    # Arguments
+        kernel: kernel tensor.
+        strides: strides tuple.
+        border_mode: string, "same" or "valid".
+        dim_ordering: "tf" or "th".
+            Whether to use Theano or TensorFlow dimension ordering
+        in inputs/kernels/ouputs.
     '''
     if dim_ordering not in {'th', 'tf'}:
         raise Exception('Unknown dim_ordering ' + str(dim_ordering))
@@ -857,6 +877,25 @@ def conv2d(x, kernel, strides=(1, 1), border_mode='valid', dim_ordering='th',
     if dim_ordering == 'tf':
         conv_out = conv_out.dimshuffle((0, 2, 3, 1))
     return conv_out
+
+
+def deconv2d(x, kernel, output_shape, strides=(1, 1),
+             border_mode='valid',
+             dim_ordering=_IMAGE_DIM_ORDERING,
+             image_shape=None, filter_shape=None):
+    raise NotImplementedError
+
+
+def atrous_conv2d(x, kernel, rate=1,
+                  border_mode='valid',
+                  dim_ordering=_IMAGE_DIM_ORDERING,
+                  image_shape=None, filter_shape=None):
+    raise NotImplementedError
+
+
+def separable_conv2d(x, depthwise_kernel, pointwise_kernel, strides=(1, 1),
+                     border_mode='valid', dim_ordering=_IMAGE_DIM_ORDERING):
+    raise NotImplementedError
 
 
 def conv3d(x, kernel, strides=(1, 1, 1),
@@ -1027,20 +1066,20 @@ def pool3d(x, pool_size, strides=(1, 1, 1), border_mode='valid',
 
 def random_normal(shape, mean=0.0, std=1.0, dtype=_FLOATX, seed=None):
     if seed is None:
-        seed = np.random.randint(10e6)
+        seed = np.random.randint(1, 10e6)
     rng = RandomStreams(seed=seed)
     return rng.normal(size=shape, avg=mean, std=std, dtype=dtype)
 
 
 def random_uniform(shape, low=0.0, high=1.0, dtype=_FLOATX, seed=None):
     if seed is None:
-        seed = np.random.randint(10e6)
+        seed = np.random.randint(1, 10e6)
     rng = RandomStreams(seed=seed)
     return rng.uniform(shape, low=low, high=high, dtype=dtype)
 
 
 def random_binomial(shape, p=0.0, dtype=_FLOATX, seed=None):
     if seed is None:
-        seed = np.random.randint(10e6)
+        seed = np.random.randint(1, 10e6)
     rng = RandomStreams(seed=seed)
     return rng.binomial(shape, p=p, dtype=dtype)
