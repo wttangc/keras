@@ -212,6 +212,7 @@ class History(Callback):
         for k, v in logs.items():
             self.history.setdefault(k, []).append(v)
 
+
 class ModelCheckpoint(Callback):
     '''Save the model after every epoch.
 
@@ -319,7 +320,8 @@ class EarlyStopping(Callback):
 
         if mode not in ['auto', 'min', 'max']:
             warnings.warn('EarlyStopping mode %s is unknown, '
-                          'fallback to auto mode.' % (self.mode), RuntimeWarning)
+                          'fallback to auto mode.' % (self.mode),
+                          RuntimeWarning)
             mode = 'auto'
 
         if mode == 'min':
@@ -361,14 +363,19 @@ class RemoteMonitor(Callback):
     # Arguments
         root: root url to which the events will be sent (at the end
             of every epoch). Events are sent to
-            `root + '/publish/epoch/end/'` by default. Calls are 
-            HTTP POST, with a `data` argument which is a 
+            `root + '/publish/epoch/end/'` by default. Calls are
+            HTTP POST, with a `data` argument which is a
             JSON-encoded dictionary of event data.
     '''
-    def __init__(self, root='http://localhost:9000', path='/publish/epoch/end/'):
+
+    def __init__(self,
+                 root='http://localhost:9000',
+                 path='/publish/epoch/end/',
+                 field='data'):
         super(RemoteMonitor, self).__init__()
         self.root = root
         self.path = path
+        self.field = field
 
     def on_epoch_end(self, epoch, logs={}):
         import requests
@@ -376,10 +383,9 @@ class RemoteMonitor(Callback):
         send['epoch'] = epoch
         for k, v in logs.items():
             send[k] = v
-
         try:
             requests.post(self.root + self.path,
-                          {'data': json.dumps(send)})
+                          {self.field: json.dumps(send)})
         except:
             print('Warning: could not reach RemoteMonitor '
                   'root server at ' + str(self.root))
@@ -429,8 +435,9 @@ class TensorBoard(Callback):
         histogram_freq: frequency (in epochs) at which to compute activation
             histograms for the layers of the model. If set to 0,
             histograms won't be computed.
-        write_graph: whether to visualize the graph in Tensorboard. The log file can
-            become quite large when write_graph is set to True.
+        write_graph: whether to visualize the graph in Tensorboard.
+            The log file can become quite large when
+            write_graph is set to True.
     '''
 
     def __init__(self, log_dir='./logs', histogram_freq=0, write_graph=True):
