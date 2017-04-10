@@ -40,6 +40,7 @@ Index
     Sequence preprocessing
 
 Objectives
+Metrics
 Optimizers
 Activations
 Callbacks
@@ -79,11 +80,16 @@ from keras import callbacks
 from keras import models
 from keras.engine import topology
 from keras import objectives
+from keras import metrics
 from keras import backend
 from keras import constraints
 from keras import activations
 from keras import regularizers
+from keras.utils import data_utils
 from keras.utils import io_utils
+from keras.utils import layer_utils
+from keras.utils import np_utils
+from keras.utils import generic_utils
 
 
 EXCLUDE = {
@@ -134,8 +140,6 @@ PAGES = [
             core.Dense,
             core.Activation,
             core.Dropout,
-            core.SpatialDropout2D,
-            core.SpatialDropout3D,
             core.Flatten,
             core.Reshape,
             core.Permute,
@@ -146,7 +150,6 @@ PAGES = [
             core.Masking,
             core.Highway,
             core.MaxoutDense,
-            core.TimeDistributedDense,
         ],
     },
     {
@@ -225,7 +228,10 @@ PAGES = [
         'page': 'layers/wrappers.md',
         'all_module_classes': [wrappers],
     },
-
+    {
+        'page': 'metrics.md',
+        'all_module_functions': [metrics],
+    },
     {
         'page': 'optimizers.md',
         'all_module_classes': [optimizers],
@@ -239,10 +245,31 @@ PAGES = [
         'all_module_functions': [backend],
     },
     {
-        'page': 'io_utils.md',
+        'page': 'utils/data_utils.md',
+        'functions': [
+            data_utils.get_file,
+        ]
+    },
+    {
+        'page': 'utils/io_utils.md',
         'classes': [
             io_utils.HDF5Matrix
         ],
+    },
+    {
+        'page': 'utils/layer_utils.md',
+        'functions': [
+            layer_utils.layer_from_config,
+        ]
+    },
+    {
+        'page': 'utils/np_utils.md',
+        'all_module_functions': [np_utils]
+    },
+    {
+        'page': 'utils/generic_utils.md',
+        'all_module_functions': [generic_utils],
+        'classes': [generic_utils.CustomObjectScope]
     },
 ]
 
@@ -291,7 +318,7 @@ def get_function_signature(function, method=True):
     for a in args:
         st += str(a) + ', '
     for a, v in kwargs:
-        if type(v) == str:
+        if isinstance(v, str):
             v = '\'' + v + '\''
         st += str(a) + '=' + str(v) + ', '
     if kwargs or args:
